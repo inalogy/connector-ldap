@@ -524,6 +524,13 @@ public abstract class AbstractLdapConfiguration extends AbstractConfiguration {
      */
     private String[] memberOfAllowedValues = { };
 
+    /**
+     * Additional attributes with options (tags), according to RFC 4512 section 2.5.2
+     *
+     * Only attributes with existing original attributes in the schema are considered.
+     */
+    private String[] taggedAttributes = { };
+
     @ConfigurationProperty(required = true, order = 1)
     public String getHost() {
         return host;
@@ -1096,6 +1103,15 @@ public abstract class AbstractLdapConfiguration extends AbstractConfiguration {
     @SuppressWarnings("unused")
     public void setMemberOfAllowedValues(String[] memberOfAllowedValues) {
         this.memberOfAllowedValues = memberOfAllowedValues;
+    }
+
+    @ConfigurationProperty(order = 59)
+    public String[] getTaggedAttributes() {
+        return taggedAttributes;
+    }
+
+    public void setTaggedAttributes(String[] taggedAttributes) {
+        this.taggedAttributes = taggedAttributes;
     }
 
     @Override

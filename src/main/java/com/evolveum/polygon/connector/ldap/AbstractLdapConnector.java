@@ -926,7 +926,12 @@ public abstract class AbstractLdapConnector<C extends AbstractLdapConfiguration>
                 }
                 List<Value> ldapValues = schemaTranslator.toLdapValues(ldapAttributeType, connIdAttrValues);
                 // Do NOT set attributeType here. The attributeType may not match the type of the value.
-                entry.put(ldapAttributeType.getName(), ldapValues.toArray(new Value[ldapValues.size()]));
+                LOG.info("create: connIdAttr.name {0}, ldapAttributeType.name {1}", connIdAttr.getName(), ldapAttributeType.getName());
+                if (schemaTranslator.isTaggedAttribute(connIdAttr.getName())) {
+                    entry.put(connIdAttr.getName(), ldapValues.toArray(new Value[ldapValues.size()]));
+                } else {
+                    entry.put(ldapAttributeType.getName(), ldapValues.toArray(new Value[ldapValues.size()]));
+                }
                 // no simple way how to check if he attribute was added. It may end up with ERR_04451. So let's just
                 // hope that it worked well. It should - unless there is a connector bug.
             }
@@ -1240,6 +1245,7 @@ public abstract class AbstractLdapConnector<C extends AbstractLdapConfiguration>
         addLdapModification(dn, modifications, ModificationOperation.REPLACE_ATTRIBUTE, ldapAttributeType, connIdAttributeName, delta.getValuesToReplace());
         addLdapModification(dn, modifications, ModificationOperation.ADD_ATTRIBUTE, ldapAttributeType, connIdAttributeName, delta.getValuesToAdd());
         addLdapModification(dn, modifications, ModificationOperation.REMOVE_ATTRIBUTE, ldapAttributeType, connIdAttributeName, delta.getValuesToRemove());
+
     }
 
     private void addLdapModificationString(List<Modification> ldapModifications,
@@ -1265,8 +1271,10 @@ public abstract class AbstractLdapConnector<C extends AbstractLdapConfiguration>
 
         if (schemaTranslator.isPolyAttribute(ldapAttributeType, connIdAttributeName, connIdValues)) {
             addLdapModificationPoly(dn, ldapModifications, modOp, ldapAttributeType, connIdValues);
+        } else if (schemaTranslator.isTaggedAttribute(connIdAttributeName)) {
+            addLdapModificationSimple(dn, ldapModifications, modOp, ldapAttributeType, connIdAttributeName, connIdValues);
         } else {
-            addLdapModificationSimple(dn, ldapModifications, modOp, ldapAttributeType, connIdValues);
+            addLdapModificationSimple(dn, ldapModifications, modOp, ldapAttributeType, ldapAttributeType.getName(), connIdValues);
         }
     }
 
@@ -1274,18 +1282,20 @@ public abstract class AbstractLdapConnector<C extends AbstractLdapConfiguration>
      * For simple (non-poly) attributes. The usual stuff. Used for most cases.
      */
     private void addLdapModificationSimple(Dn dn, List<Modification> ldapModifications,
-            ModificationOperation modOp, AttributeType ldapAttributeType, List<Object> connIdValues) {
+            ModificationOperation modOp, AttributeType ldapAttributeType, String connIdAttributeName, List<Object> connIdValues) {
         List<Value> ldapValues = schemaTranslator.toLdapValues(ldapAttributeType, connIdValues);
         if (ldapValues == null || ldapValues.isEmpty()) {
             // Do NOT set AttributeType here
             // The attributeType might not match the Value class
             // e.g. human-readable jpegPhoto attribute will expect StringValue
-            ldapModifications.add(new DefaultModification(modOp, ldapAttributeType.getName()));
+            LOG.info("addLdapModificationSimple/empty: nativeName {0}, ldapAttributeType.name {1}", connIdAttributeName, ldapAttributeType.getName());
+            ldapModifications.add(new DefaultModification(modOp, connIdAttributeName));
         } else {
             // Do NOT set AttributeType here
             // The attributeType might not match the Value class
             // e.g. human-readable jpegPhoto attribute will expect StringValue
-            DefaultAttribute ldapAttribute = new DefaultAttribute(ldapAttributeType.getName(),  ldapValues.toArray(new Value[ldapValues.size()]));
+            LOG.info("addLdapModificationSimple/non-empty: nativeName {0}, ldapAttributeType.name {1}", connIdAttributeName, ldapAttributeType.getName());
+            DefaultAttribute ldapAttribute = new DefaultAttribute(connIdAttributeName,  ldapValues.toArray(new Value[ldapValues.size()]));
             ldapModifications.add(new DefaultModification(modOp, ldapAttribute));
         }
     }

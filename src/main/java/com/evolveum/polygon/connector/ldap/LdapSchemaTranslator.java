@@ -143,6 +143,11 @@ public class LdapSchemaTranslator extends AbstractSchemaTranslator<LdapConfigura
     }
 
     @Override
+    public boolean isTaggedAttribute(String name) {
+        return name != null && name.contains(";");
+    }
+
+    @Override
     public Map<String, List<Value>> toLdapPolyValues(AttributeType ldapAttributeType, List<Object> connIdValues) {
         Map<String, List<Value>> ldapValueMap = new HashMap<>();
         if (connIdValues.size() > 1) {

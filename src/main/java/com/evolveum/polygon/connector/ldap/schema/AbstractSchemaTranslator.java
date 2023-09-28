@@ -327,6 +327,17 @@ public abstract class AbstractSchemaTranslator<C extends AbstractLdapConfigurati
                     ldapSyntax==null?null:ldapSyntax.getOid(), connIdType);
             AttributeInfo attributeInfo = aib.build();
             attrInfoList.put(attributeInfo.getName(), attributeInfo);
+
+            if (configuration.getTaggedAttributes() != null) {
+                for (String taggedAttrName : configuration.getTaggedAttributes()) {
+                    if (taggedAttrName.startsWith(connIdAttributeName + ";")) {
+                        aib.setName(taggedAttrName);
+                        aib.setNativeName(taggedAttrName);
+                        attributeInfo = aib.build();
+                        attrInfoList.put(attributeInfo.getName(), attributeInfo);
+                    }
+                }
+            }
         }
     }
 
@@ -414,7 +425,7 @@ public abstract class AbstractSchemaTranslator<C extends AbstractLdapConfigurati
             return null;
         }
         try {
-            AttributeType attributeType = schemaManager.getAttributeTypeRegistry().lookup(ldapAttributeName);
+            AttributeType attributeType = schemaManager.lookupAttributeTypeRegistry(ldapAttributeName);
             if (attributeType == null) {
                 if (allowAttributeWithoutDefinition(ldapAttributeName)) {
                     // Create fake attribute type
@@ -448,6 +459,7 @@ public abstract class AbstractSchemaTranslator<C extends AbstractLdapConfigurati
         AttributeType mutableLdapAttributeType = new AttributeType(attributeName);
         mutableLdapAttributeType.setNames(attributeName);
         mutableLdapAttributeType.setSyntaxOid(SchemaConstants.DIRECTORY_STRING_SYNTAX);
+        // mutableLdapAttributeType.setRelaxed(true);
         return mutableLdapAttributeType;
     }
 
@@ -547,6 +559,10 @@ public abstract class AbstractSchemaTranslator<C extends AbstractLdapConfigurati
     }
 
     public boolean isPolyAttribute(AttributeInfo connIdAttributeInfo) {
+        return false;
+    }
+
+    public boolean isTaggedAttribute(String name) {
         return false;
     }
 
@@ -1163,6 +1179,11 @@ public abstract class AbstractSchemaTranslator<C extends AbstractLdapConfigurati
                 }
             } else {
                 ldapAttributeNameFromSchema = ldapAttributeType.getName();
+                // handle attribute options
+                String[] a = ldapAttrName.split(";", 2);
+                if (a.length > 1) {
+                    ldapAttributeNameFromSchema = ldapAttributeNameFromSchema + ";" + a[1];
+                }
             }
             if (uidAttributeName.equals(ldapAttributeNameFromSchema)) {
                 continue;
@@ -1388,6 +1409,7 @@ public abstract class AbstractSchemaTranslator<C extends AbstractLdapConfigurati
      * @return The attribute name, without the options
      */
     public String getLdapAttributeName(String attributeId) {
+        /* TODO: DELETE
         int iSemicolon = attributeId.indexOf(';');
 
         if (iSemicolon < 0) {
@@ -1395,6 +1417,8 @@ public abstract class AbstractSchemaTranslator<C extends AbstractLdapConfigurati
         }
 
         return attributeId.substring(0, iSemicolon);
+         */
+        return attributeId;
     }
 
     public String getLdapAttributeOption(org.apache.directory.api.ldap.model.entry.Attribute ldapAttribute) {
